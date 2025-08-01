@@ -1,6 +1,11 @@
 
 # 🕰️ Hyperclock
 
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rustadex/hyperclock/main/.github/assets/logo.png" alt="placerholder" width="300">
+</p>
+
 [![Crates.io Version](https://img.shields.io/crates/v/rdx-hyperclock.svg)](https://crates.io/crates/rdx-stderr)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/rdx-stderr.svg)](https://github.com/rustadex/hyperclock/blob/main/LICENSE-MIT)
 [![MSRV](https://img.shields.io/badge/msrv-1.70.0-blue.svg)](https://blog.rust-lang.org/2023/06/01/Rust-1.70.0.html)
@@ -178,7 +183,7 @@ Hyperclock is under active development. Key features planned for the future incl
 Hyperclock & Hypershell are part of the [Rustadex](https://github.com/rustadex/rustadex) (RDX) Codex. Library of Rust-based tools and parts for general junkyard engineering. Build a rocket.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rustadex/rustadex/main/.github/assets/logo.png" alt="placerholder" width="600">
+  <img src="https://raw.githubusercontent.com/rustadex/rustadex/main/.github/assets/rdx.png" alt="placerholder" width="300">
 </p>
 
 
