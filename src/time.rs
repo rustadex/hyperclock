@@ -54,7 +54,8 @@ impl SystemClock {
             tokio::select! {
                 biased;
                 _ = shutdown_rx.recv() => break,
-                _ = interval.tick().await => {
+                // CORRECTED: No .await inside the select! arm.
+                _ = interval.tick() => {
                     tick_count += 1;
                     let event = Arc::new(TickEvent {
                         tick_count,
@@ -80,7 +81,6 @@ impl ClockResolution {
             ClockResolution::Custom { ticks_per_second } => *ticks_per_second,
         };
         if ticks_per_sec == 0 {
-            // Avoid division by zero; treat as a very slow clock.
             return Duration::from_secs(u64::MAX);
         }
         Duration::from_secs_f64(1.0 / ticks_per_sec as f64)

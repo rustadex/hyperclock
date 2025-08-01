@@ -6,7 +6,8 @@
 //! externally from the application code.
 
 use crate::common::PhaseId;
-use chrono::{Date, NaiveTime, Utc};
+// CORRECTED: Use NaiveDate instead of the deprecated Date.
+use chrono::{NaiveDate, NaiveTime};
 use chrono_tz::Tz;
 use serde::Deserialize;
 
@@ -74,7 +75,8 @@ pub struct GongConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Holiday {
     pub name: String,
-    pub date: Date<Utc>,
+    // CORRECTED: Use NaiveDate, which implements Deserialize.
+    pub date: NaiveDate,
 }
 
 // --- Default value functions for serde ---

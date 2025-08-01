@@ -1,7 +1,8 @@
 //! Defines complex, multi-step, stateful tasks, such as lifecycle loops.
 
-use crate::common::TaskId;
-use std::time::Duration;
+use crate::common::{ListenerId, TaskId};
+use crate::events::AutomationEvent;
+use tokio::sync::broadcast;
 
 /// A function closure that represents one step in a lifecycle.
 pub type LifecycleStep = Box<dyn FnMut() + Send + Sync>;
@@ -18,49 +19,86 @@ pub enum RepetitionPolicy {
 }
 
 /// A stateful automation that executes a sequence of tasks in order.
-///
-/// A `LifecycleLoop` subscribes to an interval and advances one step in its
-/// sequence each time the interval fires. This allows for creating complex,
-//  timed automations.
-pub struct LifecycleLoop {
-    pub task_id: TaskId,
+#[doc(hidden)]
+pub(crate) struct LifecycleLoop {
+    pub id: TaskId,
+    pub listener_id: ListenerId,
     steps: Vec<LifecycleStep>,
     current_step: usize,
     repetition_policy: RepetitionPolicy,
-    current_run_count: u32,
-    interval: Duration,
+    run_count: u32,
 }
 
 impl LifecycleLoop {
     /// Creates a new `LifecycleLoop`.
-    pub fn new(
-        task_id: TaskId,
+    pub(crate) fn new(
+        id: TaskId,
+        listener_id: ListenerId,
         steps: Vec<LifecycleStep>,
         repetition_policy: RepetitionPolicy,
-        interval: Duration,
     ) -> Self {
         Self {
-            task_id,
+            id,
+            listener_id,
             steps,
             current_step: 0,
             repetition_policy,
-            current_run_count: 0,
-            interval,
+            run_count: 0,
         }
     }
 
     /// Processes a `TaskFired` event to advance the lifecycle's state.
-    ///
-    /// This method contains the core logic for executing the current step,
-    /// advancing the step counter, handling repetitions, and determining
-    /// if the lifecycle is complete.
-    pub fn advance(&mut self) {
-        // TODO: Implement the full logic for advancing the lifecycle.
-        // 1. Check if there are any steps.
-        // 2. Execute the current step: `self.steps[self.current_step]()`.
-        // 3. Increment `self.current_step`.
-        // 4. If at the end of the steps, check `repetition_policy`.
-        // 5. Either loop, increment `run_count`, or mark as complete.
-        // 6. Fire `AutomationEvent`s (StepAdvanced, Completed, Looped).
+    /// Returns `true` if the lifecycle has completed and should be removed.
+    pub(crate) fn advance(
+        &mut self,
+        automation_event_sender: &broadcast::Sender<AutomationEvent>,
+    ) -> bool {
+        if self.steps.is_empty() {
+            return true;
+        }
+        if let Some(step) = self.steps.get_mut(self.current_step) {
+            (step)();
+        }
+
+        automation_event_sender
+            .send(AutomationEvent::LifecycleStepAdvanced {
+                id: self.id,
+                step_index: self.current_step,
+            })
+            .ok();
+
+        self.current_step += 1;
+
+        if self.current_step >= self.steps.len() {
+            self.run_count += 1;
+            self.current_step = 0;
+
+            match self.repetition_policy {
+                RepetitionPolicy::RunOnce => {
+                    automation_event_sender
+                        .send(AutomationEvent::LifecycleCompleted { id: self.id })
+                        .ok();
+                    return true;
+                }
+                RepetitionPolicy::RunNTimes(n) => {
+                    if self.run_count >= n {
+                        automation_event_sender
+                            .send(AutomationEvent::LifecycleCompleted { id: self.id })
+                            .ok();
+                        return true;
+                    } else {
+                        automation_event_sender
+                            .send(AutomationEvent::LifecycleLooped { id: self.id })
+                            .ok();
+                    }
+                }
+                RepetitionPolicy::Repeat => {
+                    automation_event_sender
+                        .send(AutomationEvent::LifecycleLooped { id: self.id })
+                        .ok();
+                }
+            }
+        }
+        false
     }
 }

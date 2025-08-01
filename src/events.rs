@@ -5,7 +5,7 @@
 
 use crate::common::{ListenerId, PhaseId, TaskId};
 use crate::time::TickEvent;
-use chrono::{Date, NaiveTime, Utc};
+use chrono::{NaiveDate, NaiveTime};
 use std::any::Any;
 use std::sync::Arc;
 use tokio::time::Instant;
@@ -38,13 +38,13 @@ pub enum SystemEvent {
 #[derive(Debug, Clone)]
 pub enum GongEvent {
     /// Fired once when the calendar date changes.
-    DateChanged { new_date: Date<Utc> },
+    DateChanged { new_date: NaiveDate },
     /// Fired at specific, named times of the day.
     TimeOfDay(TimeOfDay),
     /// Fired at specific, named workday milestones.
     WorkdayMilestone(WorkdayMilestone),
     /// Fired on a specific holiday defined in the `GongConfig`.
-    Holiday { name: String, date: Date<Utc> },
+    Holiday { name: String, date: NaiveDate },
 }
 
 /// A named time of day for `GongEvent`s.
@@ -67,7 +67,11 @@ pub enum TaskEvent {
     /// Fired when a new task is successfully registered with the engine.
     TaskScheduled { id: TaskId },
     /// Fired each time a scheduled task's logic is executed.
-    TaskFired { id: TaskId, tick: Arc<TickEvent> },
+    TaskFired {
+        /// The ID of the listener that triggered this event (e.g., an IntervalWatcher).
+        listener_id: ListenerId,
+        tick: Arc<TickEvent>,
+    },
     /// Fired when a finite task has completed all its runs.
     TaskCompleted { id: TaskId },
 }
@@ -93,14 +97,20 @@ pub struct ConditionalEvent {
 }
 
 /// A generic container for custom, application-defined events.
-///
-/// This allows the application to use Hyperclock's event bus for its own messaging,
-/// decoupling different parts of the application's logic.
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct UserEvent {
     /// The name or type of the event, used for filtering.
     pub name: String,
     /// The type-erased data payload. The receiver is responsible for
     /// downcasting this to the expected concrete type.
-    pub payload: Box<dyn Any + Send + Sync>,
+    pub payload: Arc<dyn Any + Send + Sync>,
+}
+
+impl std::fmt::Debug for UserEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UserEvent")
+            .field("name", &self.name)
+            .field("payload", &"...")
+            .finish()
+    }
 }

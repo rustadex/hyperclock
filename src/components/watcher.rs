@@ -1,10 +1,10 @@
 //! Defines watchers that react to the event stream to produce higher-level events.
 
-use crate::common::{ListenerId, PhaseId};
+use crate::common::PhaseId;
 use crate::config::GongConfig;
-use crate::events::{ConditionalEvent, GongEvent, TaskEvent, TimeOfDay};
+use crate::events::GongEvent;
 use crate::time::TickEvent;
-use chrono::{Datelike, Timelike, Utc};
+use chrono::Utc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::broadcast;
@@ -12,26 +12,23 @@ use tokio::sync::broadcast;
 /// A function closure that represents a condition to be checked.
 pub type ConditionCheck = Box<dyn Fn() -> bool + Send + Sync>;
 
-/// Watches a phase stream and fires a `TaskEvent` at a regular interval.
+/// Watches a phase stream and executes logic at a regular interval.
 #[doc(hidden)]
 pub(crate) struct IntervalWatcher {
-    task_id: TaskId,
-    phase_to_watch: PhaseId,
-    interval: Duration,
-    last_fired: Instant,
-    task_logic: Box<dyn FnMut() + Send + Sync>,
+    pub phase_to_watch: PhaseId,
+    pub interval: Duration,
+    pub last_fired: Instant,
+    pub task_logic: Box<dyn FnMut() + Send + Sync>,
 }
 
 impl IntervalWatcher {
     /// Creates a new `IntervalWatcher`.
     pub(crate) fn new(
-        task_id: TaskId,
         phase_to_watch: PhaseId,
         interval: Duration,
         task_logic: Box<dyn FnMut() + Send + Sync>,
     ) -> Self {
         Self {
-            task_id,
             phase_to_watch,
             interval,
             last_fired: Instant::now(),
@@ -40,14 +37,16 @@ impl IntervalWatcher {
     }
 
     /// Processes a phase event and executes its internal logic if the interval has elapsed.
-    pub(crate) fn process_phase(&mut self, current_phase: PhaseId) {
+    /// Returns `true` if the watcher's logic was executed.
+    pub(crate) fn process_phase(&mut self, current_phase: PhaseId) -> bool {
         if current_phase == self.phase_to_watch {
             if self.last_fired.elapsed() >= self.interval {
                 (self.task_logic)();
                 self.last_fired = Instant::now();
-                // Note: The engine itself will be responsible for firing the TaskFired event.
+                return true;
             }
         }
+        false
     }
 }
 
@@ -55,7 +54,7 @@ impl IntervalWatcher {
 #[doc(hidden)]
 pub(crate) struct GongWatcher {
     config: Arc<GongConfig>,
-    last_known_date: chrono::Date<chrono_tz::Tz>,
+    last_known_date: chrono::NaiveDate,
 }
 
 impl GongWatcher {
@@ -64,7 +63,7 @@ impl GongWatcher {
         let now = Utc::now().with_timezone(&config.timezone);
         Self {
             config,
-            last_known_date: now.date(),
+            last_known_date: now.date_naive(),
         }
     }
 
@@ -75,19 +74,17 @@ impl GongWatcher {
         gong_event_sender: &broadcast::Sender<GongEvent>,
     ) {
         let now = Utc::now().with_timezone(&self.config.timezone);
-        let current_date = now.date();
+        let current_date = now.date_naive();
 
-        // Check for date change, which is the most significant gong.
         if current_date != self.last_known_date {
             gong_event_sender
                 .send(GongEvent::DateChanged {
-                    new_date: current_date.with_timezone(&Utc),
+                    new_date: current_date,
                 })
                 .ok();
 
-            // When the date changes, check if the new date is a configured holiday.
             for holiday in &self.config.holidays {
-                if holiday.date == current_date.with_timezone(&Utc) {
+                if holiday.date == current_date {
                     gong_event_sender
                         .send(GongEvent::Holiday {
                             name: holiday.name.clone(),
@@ -98,18 +95,15 @@ impl GongWatcher {
             }
             self.last_known_date = current_date;
         }
-
-        // TODO: Implement checks for Noon, Midnight, Hourly, etc., by comparing
-        // the current time to the time of the last known tick to fire only once.
     }
 }
 
 /// Watches for a specific condition to become true.
 #[doc(hidden)]
 pub(crate) struct ConditionalWatcher {
-    condition: ConditionCheck,
-    task_logic: Box<dyn FnMut() + Send + Sync>,
-    is_one_shot: bool,
+    pub condition: ConditionCheck,
+    pub task_logic: Box<dyn FnMut() + Send + Sync>,
+    pub is_one_shot: bool,
 }
 
 impl ConditionalWatcher {
