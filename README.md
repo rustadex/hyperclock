@@ -6,8 +6,8 @@
   <img src="https://raw.githubusercontent.com/rustadex/hyperclock/main/.github/assets/logo.png" alt="placerholder" width="80%">
 </p>
 
-[![Crates.io Version](https://img.shields.io/crates/v/rdx-hyperclock.svg)](https://crates.io/crates/rdx-stderr)
-[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/rdx-stderr.svg)](https://github.com/rustadex/hyperclock/blob/main/LICENSE-MIT)
+[![Crates.io Version](https://img.shields.io/crates/v/rdx-hyperclock.svg)](https://crates.io/crates/rdx-hyperclock)
+[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/rdx-hyperclock.svg)](https://github.com/rustadex/rdx-hyperclock/blob/main/LICENSE-MIT)
 [![MSRV](https://img.shields.io/badge/msrv-1.70.0-blue.svg)](https://blog.rust-lang.org/2023/06/01/Rust-1.70.0.html)
 
 A high-performance, event-driven, phased time engine for Rust, designed for simulations, game development, and complex, time-sensitive applications.
