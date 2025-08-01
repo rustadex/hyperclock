@@ -56,6 +56,10 @@
 //! }
 //! ```
 
+pub const ENGINE_NAME: &str = "Hyper Engine";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+
 // Declare all the modules in the crate.
 pub mod common;
 pub mod components;

@@ -14,6 +14,11 @@ name = "hyperclock"
 path = "src/lib.rs"
 
 
+[[bin]]
+name = "hyperdev" 
+path = "src/main.rs"
+
+
 [dependencies]
 tokio = { workspace = true }
 anyhow = { workspace = true }
@@ -23,5 +28,5 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde = { workspace = true }
 config = { workspace = true }
-slotmap = { version = "1", features = ["serde"] }
-
+slotmap = { workspace = true }
+colored = { workspace = true }

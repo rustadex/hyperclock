@@ -1,6 +1,6 @@
 [package]
 name = "rdx-hypershell"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
 description = "An interactive shell for the Hyperclock phase engine."
@@ -11,6 +11,10 @@ keywords = ["hyperclock", "shell", "repl", "rdx", "phase-engine"]
 categories = ["command-line-utilities"]
 publish = false
 
+[[bin]]
+name = "hypershell" 
+path = "src/main.rs"
+
 [dependencies]
 hyperclock = { package = "rdx-hyperclock", path = "../rdx-hyperclock" }
 tokio = { workspace = true }
@@ -20,3 +24,5 @@ chrono = { workspace = true }
 rustyline = "14.0"
 tracing-subscriber = { workspace = true }
 config = { version = "0.14", features = ["toml"] } # The shell might load a config file
+colored = { workspace = true }
+slotmap = { workspace = true }

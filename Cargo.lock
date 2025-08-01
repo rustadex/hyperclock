@@ -208,6 +208,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
+dependencies = [
+ "lazy_static",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "config"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,6 +828,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "chrono-tz",
+ "colored",
  "config",
  "serde",
  "slotmap",
@@ -828,13 +839,15 @@ dependencies = [
 
 [[package]]
 name = "rdx-hypershell"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
+ "colored",
  "config",
  "rdx-hyperclock",
  "rustyline",
+ "slotmap",
  "tokio",
  "tracing",
  "tracing-subscriber",

@@ -1,58 +1,78 @@
 use anyhow::Result;
-use hyperclock::config::{ClockResolution, PhaseConfig};
+use colored::Colorize;
+use hyperclock::{ENGINE_NAME, VERSION as LIB_VERSION};
 use hyperclock::prelude::*;
+use std::env;
 use std::time::Duration;
 use tracing::info;
 
+const SHELL_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    // 1. Initialize logging for the shell application.
+
+
+    let config = HyperclockConfig::default();
+    let engine = HyperclockEngine::new(config);
+    let engine_handle = engine.clone();
+
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .with_target(false)
         .init();
 
-    // 2. Create a default configuration for the engine.
-    // In a real app, load this from a `hypershell.toml` file.
-    let config = HyperclockConfig {
-        resolution: ClockResolution::Medium,
-        phases: vec![PhaseConfig {
-            id: PhaseId(0),
-            label: "default".to_string(),
-        }],
-        ..Default::default()
-    };
-    let engine = HyperclockEngine::new(config);
+    if env::var("QUIET_MODE").is_err() {
+        // The `include_str!` macro reads the file at COMPILE time and embeds
+        // the text directly into the binary. This is very efficient.
+        // It assumes `logo.log` is in the root of the `rdx-hypershell` crate.
+        const LOGO_TEXT: &str = include_str!("../logo.log");
+        println!("{}", LOGO_TEXT.blue());
 
-    // 3. Clone the engine handle. This handle is our "client" that we will use
-    // to send commands to the running engine.
-    let engine_handle = engine.clone();
+        // Dynamically create the version string
+        let version_string = format!(
+            "          Shell   v{:<8} Library   v{:<8}",
+            SHELL_VERSION, LIB_VERSION
+        );        
 
-    // 4. Spawn a task to listen to system events for user feedback.
+        println!("{}", "------------------------------------".dimmed());
+
+        // --- NEW: ADD THE LICENSE BLURB ---
+        let license_blurb = "
+        This software is provided 'as is', without warranty of any kind.
+        Distributed under the MIT OR Apache-2.0 license. Use at your own risk.
+        ";
+
+        println!("{}", version_string);
+        println!("{}", license_blurb.dimmed());
+
+        println!("{}", "------------------------------------".dimmed());
+
+
+    }
+    
+
     let mut system_rx = engine_handle.subscribe_system_events();
     tokio::spawn(async move {
         while let Ok(event) = system_rx.recv().await {
-            // Using println! here because this is direct user feedback, not just a log.
             println!("\n<-- [SYSTEM EVENT] {:?}\n>> ", event);
         }
     });
 
-    // 5. Spawn the engine to run in the background. We `move` the original
-    // `engine` into this task, where it will live for the duration of the program.
-    info!("Spawning Hyperclock engine in the background...");
+    info!("Spawning {} in the background...", ENGINE_NAME);
     tokio::spawn(async move {
         if let Err(e) = engine.run().await {
             eprintln!("\nEngine stopped with an error: {}", e);
         }
     });
 
-    // Give the engine a moment to start up before showing the prompt.
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    // 6. Start the interactive command loop (REPL).
+    // The shell's state is declared here, before the loop.
+    // It is `mut` because we `push` new IDs into it.
+    let mut active_listeners: Vec<ListenerId> = Vec::new();
+
     let mut rl = rustyline::DefaultEditor::new()?;
-    println!("--- hypershell ---");
-    println!("Hyperclock is running. Type 'help' for commands or 'exit' to quit.");
+    println!("{} is running. Type 'help' for commands or 'exit' to quit.", ENGINE_NAME);
 
     loop {
         let readline = rl.readline(">> ");
@@ -61,44 +81,70 @@ async fn main() -> Result<()> {
                 rl.add_history_entry(line.as_str())?;
                 let args = line.trim().split_whitespace().collect::<Vec<_>>();
 
-                // 7. Parse the user's command and call the engine's public API
-                // using our `engine_handle`.
                 if let Some(command) = args.get(0) {
                     match *command {
                         "add" => {
                             if let Some(&"interval") = args.get(1) {
-                                // We call the async API method on our handle.
                                 let listener_id = engine_handle.on_interval(
                                     PhaseId(0),
                                     Duration::from_secs(5),
                                     || println!("<-- [INTERVAL TASK] A 5-second interval fired!"),
                                 ).await;
-                                println!("--> Added interval listener with ID: {:?}", listener_id);
+                                let handle = active_listeners.len();
+                                active_listeners.push(listener_id); // This line requires `mut`.
+                                println!("--> Added interval listener with handle: #{}", handle);
                             } else {
                                 println!("Unknown 'add' command. Try 'add interval'.");
                             }
                         }
                         "remove" => {
-                            println!("Remove command not yet implemented.");
+                            if let Some(&"interval") = args.get(1) {
+                                if let Some(handle_str) = args.get(2) {
+                                    if let Ok(handle) = handle_str.parse::<usize>() {
+                                        if let Some(id_to_remove) = active_listeners.get(handle).cloned() {
+                                            if engine_handle.remove_interval_listener(id_to_remove).await {
+                                                println!("--> Listener successfully removed.");
+                                            } else {
+                                                println!("--> Error: Listener not found in engine.");
+                                            }
+                                        } else {
+                                             println!("Error: Invalid handle #{}. Use 'list' to see active listeners.", handle);
+                                        }
+                                    } else {
+                                        println!("Error: Handle must be a number (e.g., '0', '1').");
+                                    }
+                                } else {
+                                    println!("Usage: remove interval <HANDLE>");
+                                }
+                            } else {
+                                println!("Unknown 'remove' command. Try 'remove interval'.");
+                            }
+                        }
+                        "list" => {
+                             println!("Active Listeners:");
+                             for (handle, id) in active_listeners.iter().enumerate() {
+                                 println!("  Handle #{}: {:?}", handle, id);
+                             }
                         }
                         "help" => {
                             println!("Available commands:");
-                            println!("  add interval - Adds a 5-second interval watcher on phase 0.");
-                            println!("  exit         - Quits the shell.");
+                            println!("  add interval          - Adds a 5-second interval watcher.");
+                            println!("  list                  - Shows active listeners and their handles.");
+                            println!("  remove interval <H>   - Removes a watcher by its handle (e.g., remove interval 0).");
+                            println!("  exit                  - Quits the shell.");
                         }
                         "exit" => break,
-                        "" => {} // Ignore empty input
+                        "" => {}
                         _ => println!("Unknown command: '{}'. Type 'help'.", line),
                     }
                 }
             }
-            Err(_) => { // This handles Ctrl+C or Ctrl+D in the prompt.
+            Err(_) => {
                 println!("Exiting hypershell...");
                 break;
             }
         }
     }
 
-    // When main exits, the background engine task will be dropped and shut down.
     Ok(())
 }

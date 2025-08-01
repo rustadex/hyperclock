@@ -1,5 +1,7 @@
 //! The core engine that orchestrates the entire Hyperclock system.
 
+use crate::ENGINE_NAME; 
+
 use crate::common::{ListenerId, PhaseId, TaskId};
 use crate::components::task::{LifecycleLoop, LifecycleStep, RepetitionPolicy};
 use crate::components::watcher::{ConditionalWatcher, GongWatcher, IntervalWatcher};
@@ -83,7 +85,7 @@ impl HyperclockEngine {
     /// 2. Spawn the main dispatcher task that listens for ticks and fires events.
     /// 3. Wait for a Ctrl+C signal to initiate a graceful shutdown.
     pub async fn run(&self) -> anyhow::Result<()> {
-        info!("HyperclockEngine starting up...");
+        info!("{} starting up...", ENGINE_NAME);
         let (shutdown_tx, _) = broadcast::channel(1);
 
         let clock = SystemClock::new(self.config.resolution.clone(), self.tick_sender.clone());
@@ -95,8 +97,8 @@ impl HyperclockEngine {
         tokio::spawn(async move { dispatcher.dispatcher_loop(dispatcher_shutdown_rx).await });
 
         info!(
-            "Engine running at {:?}. Press Ctrl+C to shut down.",
-            self.config.resolution
+            "{} running at {:?}. Press Ctrl+C to shut down.",
+            ENGINE_NAME, self.config.resolution
         );
         tokio::signal::ctrl_c().await?;
 
@@ -108,7 +110,7 @@ impl HyperclockEngine {
         self.system_event_sender
             .send(SystemEvent::EngineShutdown)
             .ok();
-        info!("HyperclockEngine has shut down.");
+        info!("{} has shut down.", ENGINE_NAME);
         Ok(())
     }
 
