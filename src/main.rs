@@ -144,7 +144,8 @@ async fn register_test_components(engine: &HyperclockEngine) {
             vec![
                 Box::new(|| info!("[LIFECYCLE] => Step 1: Initializing...")),
                 Box::new(|| info!("[LIFECYCLE] => Step 2: Processing...")),
-                Box::new(|| info!("[LIFECYCLE] => Step 3: Finalizing cycle.")),
+                Box::new(|| info!("[LIFECYCLE] => Step 3: Fun cycle.")),
+                Box::new(|| info!("[LIFECYCLE] => Step 4: Finalizing cycle.")),
             ],
             RepetitionPolicy::RunNTimes(2),
         )
