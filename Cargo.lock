@@ -415,35 +415,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyperclock"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "chrono",
- "chrono-tz",
- "config",
- "serde",
- "slotmap",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "hypershell"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "config",
- "hyperclock",
- "rustyline",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "iana-time-zone"
 version = "0.1.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -839,6 +810,35 @@ name = "rand_core"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
+
+[[package]]
+name = "rdx-hyperclock"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "chrono-tz",
+ "config",
+ "serde",
+ "slotmap",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "rdx-hypershell"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "config",
+ "rdx-hyperclock",
+ "rustyline",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "redox_syscall"

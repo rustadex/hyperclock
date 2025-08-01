@@ -9,6 +9,11 @@ repository = "https://github.com/rustadex/hyperclock"
 readme = "README.md"
 keywords = ["hyperclock", "rdx", "sim", "time", "phase-engine"]
 
+[lib]
+name = "hyperclock" 
+path = "src/lib.rs"
+
+
 [dependencies]
 tokio = { workspace = true }
 anyhow = { workspace = true }
