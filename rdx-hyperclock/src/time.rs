@@ -75,6 +75,7 @@ impl ClockResolution {
     /// Converts the resolution enum into a concrete `Duration`.
     pub(crate) fn to_duration(&self) -> Duration {
         let ticks_per_sec = match self {
+            ClockResolution::Ultra => 120,
             ClockResolution::High => 60,
             ClockResolution::Medium => 30,
             ClockResolution::Low => 1,

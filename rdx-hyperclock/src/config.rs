@@ -34,7 +34,9 @@ pub struct HyperclockConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClockResolution {
-    /// ~60 ticks per second. Suitable for real-time applications.
+    /// ~120 ticks per second. Ideal for high-speed, competitive games.
+    Ultra,
+  /// ~60 ticks per second. Suitable for real-time applications.
     High,
     /// ~30 ticks per second. Suitable for general purpose simulations.
     Medium,

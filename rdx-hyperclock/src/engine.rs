@@ -1,7 +1,7 @@
 //! The core engine that orchestrates the entire Hyperclock system.
 
 use crate::ENGINE_NAME; 
-
+use colored::Colorize;
 use crate::common::{ListenerId, PhaseId, TaskId};
 use crate::components::task::{LifecycleLoop, LifecycleStep, RepetitionPolicy};
 use crate::components::watcher::{ConditionalWatcher, GongWatcher, IntervalWatcher};
@@ -85,7 +85,7 @@ impl HyperclockEngine {
     /// 2. Spawn the main dispatcher task that listens for ticks and fires events.
     /// 3. Wait for a Ctrl+C signal to initiate a graceful shutdown.
     pub async fn run(&self) -> anyhow::Result<()> {
-        info!("{} starting up...", ENGINE_NAME);
+        info!("{} starting up...", ENGINE_NAME.cyan());
         let (shutdown_tx, _) = broadcast::channel(1);
 
         let clock = SystemClock::new(self.config.resolution.clone(), self.tick_sender.clone());
@@ -98,7 +98,7 @@ impl HyperclockEngine {
 
         info!(
             "{} running at {:?}. Press Ctrl+C to shut down.",
-            ENGINE_NAME, self.config.resolution
+            ENGINE_NAME.cyan(), self.config.resolution
         );
         tokio::signal::ctrl_c().await?;
 
@@ -110,7 +110,7 @@ impl HyperclockEngine {
         self.system_event_sender
             .send(SystemEvent::EngineShutdown)
             .ok();
-        info!("{} has shut down.", ENGINE_NAME);
+        info!("{} has shut down.", ENGINE_NAME.cyan());
         Ok(())
     }
 
@@ -350,6 +350,18 @@ impl HyperclockEngine {
         } else {
             false
         }
+    }
+
+    /// Subscribes to the raw `TickEvent` stream.
+    ///
+    /// This provides access to the highest-frequency event in the engine, firing
+    /// directly from the `SystemClock` before phase processing. This is a
+    /// power-user feature for tasks that need to react to every single tick
+    /// without regard for the phase cycle.
+    ///
+    /// Most users should prefer `subscribe_phase_events`.
+    pub fn subscribe_tick_events(&self) -> broadcast::Receiver<Arc<TickEvent>> {
+        self.tick_sender.subscribe()
     }
 
     /// Subscribes to the `SystemEvent` stream.

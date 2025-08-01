@@ -56,7 +56,7 @@
 //! }
 //! ```
 
-pub const ENGINE_NAME: &str = "Hyper Engine";
+pub const ENGINE_NAME: &str = "[ HYPER_ENGINE ]";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
@@ -77,6 +77,7 @@ pub mod prelude {
         AutomationEvent, ConditionalEvent, GongEvent, PhaseEvent, SystemEvent, TaskEvent,
         UserEvent,
     };
+    pub use crate::time::TickEvent;
 }
 
 // A temporary default implementation for the config for the example.
