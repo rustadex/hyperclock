@@ -1,0 +1,20 @@
+[package]
+name = "hyperclock"
+version = "0.1.2"
+edition = "2021"
+authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
+description = "A high-performance, event-driven, phased time engine."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustadex/hyperclock"
+readme = "README.md"
+
+
+[dependencies]
+tokio = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { version = "0.8", features = ["serde"] } # This one is specific to hyperclock
+tracing = { workspace = true }
+serde = { workspace = true }
+config = { workspace = true }
+slotmap = { version = "1", features = ["serde"] }

@@ -18,7 +18,9 @@ use tracing::{error, info, trace};
 /// The main Hyperclock engine.
 ///
 /// This struct is the central point of control. It holds the system's configuration,
-/// manages all active listeners and tasks, and drives the event loop.
+/// manages all active listeners and tasks, and drives the event loop. The `Engine`
+/// is designed to be cloned and shared across tasks, providing a handle to the
+/// running instance.
 #[derive(Clone)]
 pub struct HyperclockEngine {
     config: Arc<HyperclockConfig>,
@@ -37,6 +39,7 @@ pub struct HyperclockEngine {
     lifecycle_triggers: Arc<RwLock<HashMap<ListenerId, TaskId>>>,
 }
 
+// Core implementation block for internal logic.
 impl HyperclockEngine {
     /// Creates a new `HyperclockEngine` with the given configuration.
     pub fn new(config: HyperclockConfig) -> Self {
@@ -74,6 +77,11 @@ impl HyperclockEngine {
     }
 
     /// Runs the engine's main loop until a shutdown signal is received.
+    ///
+    /// This method will:
+    /// 1. Spawn the `SystemClock` task.
+    /// 2. Spawn the main dispatcher task that listens for ticks and fires events.
+    /// 3. Wait for a Ctrl+C signal to initiate a graceful shutdown.
     pub async fn run(&self) -> anyhow::Result<()> {
         info!("HyperclockEngine starting up...");
         let (shutdown_tx, _) = broadcast::channel(1);
@@ -108,13 +116,11 @@ impl HyperclockEngine {
     async fn dispatcher_loop(self, mut shutdown_rx: broadcast::Receiver<()>) {
         let mut tick_rx = self.tick_sender.subscribe();
         let mut task_rx = self.task_event_sender.subscribe();
-
         self.system_event_sender
             .send(SystemEvent::EngineStarted {
                 timestamp: tokio::time::Instant::now(),
             })
             .ok();
-
         loop {
             tokio::select! {
                 biased;
@@ -122,12 +128,8 @@ impl HyperclockEngine {
                 Ok(tick) = tick_rx.recv() => {
                     trace!("Tick #{} received.", tick.tick_count);
                     self.process_tick_watchers(&tick).await;
-
                     for phase_config in self.config.phases.iter() {
-                        let phase_event = PhaseEvent {
-                            phase: phase_config.id,
-                            tick: tick.clone(),
-                        };
+                        let phase_event = PhaseEvent { phase: phase_config.id, tick: tick.clone() };
                         self.process_phase_watchers(&phase_event).await;
                         self.phase_sender.send(phase_event).ok();
                     }
@@ -141,6 +143,7 @@ impl HyperclockEngine {
         }
     }
 
+    #[doc(hidden)]
     async fn process_phase_watchers(&self, phase_event: &PhaseEvent) {
         let mut interval_watchers = self.interval_watchers.write().await;
         for (id, watcher) in interval_watchers.iter_mut() {
@@ -155,6 +158,7 @@ impl HyperclockEngine {
         }
     }
 
+    #[doc(hidden)]
     async fn process_tick_watchers(&self, tick: &Arc<TickEvent>) {
         let mut conditional_watchers = self.conditional_watchers.write().await;
         let mut fired_one_shots = Vec::new();
@@ -178,13 +182,13 @@ impl HyperclockEngine {
                     .ok();
             }
         }
-
         let mut gong_watchers = self.gong_watchers.write().await;
         for (_id, watcher) in gong_watchers.iter_mut() {
             watcher.process_tick(tick, &self.gong_event_sender);
         }
     }
 
+    #[doc(hidden)]
     async fn process_lifecycle_trigger(&self, interval_listener_id: ListenerId) {
         let lifecycle_id = self
             .lifecycle_triggers
@@ -211,8 +215,22 @@ impl HyperclockEngine {
             }
         }
     }
+}
 
+// Public API implementation block.
+impl HyperclockEngine {
     /// Registers a task to be executed at a regular interval.
+    ///
+    /// The task's interval timer will only advance during the specified `phase`.
+    /// The provided `task_logic` closure will be executed each time the interval elapses.
+    ///
+    /// # Arguments
+    /// * `phase_to_watch` - The `PhaseId` during which this interval is active.
+    /// * `interval` - The `Duration` between task executions.
+    /// * `task_logic` - A closure to execute when the interval fires.
+    ///
+    /// # Returns
+    /// A `ListenerId` which can be used to later remove this watcher.
     pub async fn on_interval(
         &self,
         phase_to_watch: PhaseId,
@@ -229,6 +247,17 @@ impl HyperclockEngine {
     }
 
     /// Registers a task to be executed whenever a given condition is met.
+    ///
+    /// The `condition` closure is checked on every tick of the engine. If it returns `true`,
+    /// the `task_logic` closure is executed.
+    ///
+    /// # Arguments
+    /// * `condition` - A closure that returns `true` when the task should fire.
+    /// * `task_logic` - A closure to execute when the condition is met.
+    /// * `is_one_shot` - If true, the watcher will be automatically removed after firing once.
+    ///
+    /// # Returns
+    /// A `ListenerId` which can be used to later remove this watcher.
     pub async fn on_conditional(
         &self,
         condition: impl Fn() -> bool + Send + Sync + 'static,
@@ -246,6 +275,12 @@ impl HyperclockEngine {
     }
 
     /// Adds a new `LifecycleLoop` to the engine.
+    ///
+    /// This creates a complex automation that executes a sequence of steps,
+    /// with each step advancing after the specified `interval`.
+    ///
+    /// # Returns
+    /// A `TaskId` for the created lifecycle loop.
     pub async fn add_lifecycle_loop(
         &self,
         phase_to_watch: PhaseId,
@@ -253,6 +288,7 @@ impl HyperclockEngine {
         steps: Vec<LifecycleStep>,
         repetition_policy: RepetitionPolicy,
     ) -> TaskId {
+        // This interval watcher exists solely to drive the lifecycle loop.
         let interval_watcher_id = self
             .on_interval(phase_to_watch, interval, || {})
             .await;
@@ -271,6 +307,8 @@ impl HyperclockEngine {
     }
 
     /// Removes an interval listener from the engine.
+    ///
+    /// Returns `true` if the listener was found and removed.
     pub async fn remove_interval_listener(&self, id: ListenerId) -> bool {
         let was_removed = self.interval_watchers.write().await.remove(id).is_some();
         if was_removed {
@@ -282,6 +320,8 @@ impl HyperclockEngine {
     }
 
     /// Removes a conditional listener from the engine.
+    ///
+    /// Returns `true` if the listener was found and removed.
     pub async fn remove_conditional_listener(&self, id: ListenerId) -> bool {
         let was_removed = self.conditional_watchers.write().await.remove(id).is_some();
         if was_removed {
@@ -290,6 +330,24 @@ impl HyperclockEngine {
                 .ok();
         }
         was_removed
+    }
+
+    /// Removes a lifecycle loop from the engine.
+    ///
+    /// This also removes the internal interval watcher that drives the loop.
+    /// Returns `true` if the loop was found and removed.
+    pub async fn remove_lifecycle_loop(&self, id: TaskId) -> bool {
+        if let Some(removed_loop) = self.lifecycle_loops.write().await.remove(id) {
+            self.remove_interval_listener(removed_loop.listener_id)
+                .await;
+            self.lifecycle_triggers
+                .write()
+                .await
+                .remove(&removed_loop.listener_id);
+            true
+        } else {
+            false
+        }
     }
 
     /// Subscribes to the `SystemEvent` stream.

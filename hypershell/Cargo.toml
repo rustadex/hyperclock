@@ -1,0 +1,14 @@
+[package]
+name = "hypershell"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hyperclock = { path = "../hyperclock" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+rustyline = "14.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+config = { version = "0.14", features = ["toml"] } # The shell might load a config file

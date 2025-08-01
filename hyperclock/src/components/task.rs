@@ -38,12 +38,12 @@ impl LifecycleLoop {
         repetition_policy: RepetitionPolicy,
     ) -> Self {
         Self {
-          id,
-          listener_id,
-          steps,
-          current_step: 0,
-          repetition_policy,
-          run_count: 0,
+            id,
+            listener_id,
+            steps,
+            current_step: 0,
+            repetition_policy,
+            run_count: 0,
         }
     }
 
