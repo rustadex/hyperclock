@@ -1,0 +1,20 @@
+[package]
+name = "hyperclock"
+version = "0.1.2"
+edition = "2021"
+authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
+description = "A high-performance, event-driven, phased time engine."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustadex/hyperclock"
+readme = "README.md"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = { version = "0.8", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+config = { version = "0.14", features = ["toml"] }
+slotmap = { version = "1", features = ["serde"] }

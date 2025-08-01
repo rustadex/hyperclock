@@ -1,0 +1,14 @@
+# Example config.toml
+resolution = "High" # 60 ticks per second
+
+[[phases]]
+id = 0
+label = "observe"
+
+[[phases]]
+id = 1
+label = "predict_and_decide"
+
+[[phases]]
+id = 2
+label = "act"
