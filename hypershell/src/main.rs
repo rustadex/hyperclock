@@ -1,4 +1,5 @@
 use anyhow::Result;
+use hyperclock::config::{ClockResolution, PhaseConfig};
 use hyperclock::prelude::*;
 use std::time::Duration;
 use tracing::info;
@@ -12,33 +13,40 @@ async fn main() -> Result<()> {
         .init();
 
     // 2. Create a default configuration for the engine.
-    // In a real app, you might load this from a file.
-    let config = HyperclockConfig::default();
+    // In a real app, you would load this from a `hypershell.toml` file.
+    let config = HyperclockConfig {
+        resolution: ClockResolution::Medium,
+        phases: vec![PhaseConfig {
+            id: PhaseId(0),
+            label: "default".to_string(),
+        }],
+        ..Default::default()
+    };
     let engine = HyperclockEngine::new(config);
 
-    // 3. Clone the engine handle to use for sending commands.
-    // The original `engine` will be moved into the background task.
+    // 3. Clone the engine handle. This handle is our "client" that we will use
+    // to send commands to the running engine.
     let engine_handle = engine.clone();
 
-    // 4. Spawn a task to listen to system events for feedback.
+    // 4. Spawn a task to listen to system events for user feedback.
     let mut system_rx = engine_handle.subscribe_system_events();
     tokio::spawn(async move {
         while let Ok(event) = system_rx.recv().await {
-            // Use println! here because this is user-facing feedback, not just a log.
+            // Using println! here because this is direct user feedback, not just a log.
             println!("\n<-- [SYSTEM EVENT] {:?}\n>> ", event);
         }
     });
 
-    // 5. Spawn the engine to run in the background.
-    // This is the most important step! We `move` the engine into the task.
+    // 5. Spawn the engine to run in the background. We `move` the original
+    // `engine` into this task, where it will live for the duration of the program.
     info!("Spawning Hyperclock engine in the background...");
     tokio::spawn(async move {
         if let Err(e) = engine.run().await {
-            eprintln!("Engine failed with error: {}", e);
+            eprintln!("\nEngine stopped with an error: {}", e);
         }
     });
-    
-    // Give the engine a moment to start up.
+
+    // Give the engine a moment to start up before showing the prompt.
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     // 6. Start the interactive command loop (REPL).
@@ -53,12 +61,13 @@ async fn main() -> Result<()> {
                 rl.add_history_entry(line.as_str())?;
                 let args = line.trim().split_whitespace().collect::<Vec<_>>();
 
-                // 7. Parse the user's command and call the engine's public API.
-                // We use the `engine_handle` to interact with the background engine.
+                // 7. Parse the user's command and call the engine's public API
+                // using our `engine_handle`.
                 if let Some(command) = args.get(0) {
                     match *command {
                         "add" => {
                             if let Some(&"interval") = args.get(1) {
+                                // We call the async API method on our handle.
                                 let listener_id = engine_handle.on_interval(
                                     PhaseId(0),
                                     Duration::from_secs(5),
@@ -70,12 +79,11 @@ async fn main() -> Result<()> {
                             }
                         }
                         "remove" => {
-                            // TODO: Add logic to parse a ListenerId and call remove_interval_listener
                             println!("Remove command not yet implemented.");
                         }
                         "help" => {
                             println!("Available commands:");
-                            println!("  add interval - Adds a 5-second interval watcher.");
+                            println!("  add interval - Adds a 5-second interval watcher on phase 0.");
                             println!("  exit         - Quits the shell.");
                         }
                         "exit" => break,
@@ -84,15 +92,13 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            Err(_) => {
-                // This handles Ctrl+C or Ctrl+D in the prompt.
+            Err(_) => { // This handles Ctrl+C or Ctrl+D in the prompt.
                 println!("Exiting hypershell...");
                 break;
             }
         }
     }
 
-    // The engine will continue running in the background until the main process exits.
-    // For a clean shutdown, we would need to add a command to tell the engine to stop.
+    // When main exits, the background engine task will be dropped and shut down.
     Ok(())
 }

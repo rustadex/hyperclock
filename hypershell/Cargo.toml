@@ -1,6 +1,6 @@
 [package]
 name = "hypershell"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
 description = "An interactive shell for the Hyperclock phase engine."
@@ -18,5 +18,5 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 rustyline = "14.0"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { workspace = true }
 config = { version = "0.14", features = ["toml"] } # The shell might load a config file
