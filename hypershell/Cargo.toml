@@ -2,6 +2,14 @@
 name = "hypershell"
 version = "0.1.0"
 edition = "2021"
+authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
+description = "An interactive shell for the Hyperclock phase engine."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustadex/hyperclock"
+readme = "README.md"
+keywords = ["hyperclock", "shell", "repl", "time", "phase-engine"]
+categories = ["command-line-utilities"]
+publish = false
 
 [dependencies]
 hyperclock = { path = "../hyperclock" }

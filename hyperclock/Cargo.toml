@@ -1,13 +1,13 @@
 [package]
 name = "hyperclock"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
-description = "A high-performance, event-driven, phased time engine."
+description = "A high-performance, event-driven, phased time simulation engine."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rustadex/hyperclock"
 readme = "README.md"
-
+keywords = ["hyperclock", "shell", "sim", "time", "phase-engine"]
 
 [dependencies]
 tokio = { workspace = true }
