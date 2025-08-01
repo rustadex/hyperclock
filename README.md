@@ -3,7 +3,7 @@
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rustadex/hyperclock/main/.github/assets/logo.png" alt="placerholder" width="300">
+  <img src="https://raw.githubusercontent.com/rustadex/hyperclock/main/.github/assets/logo.png" alt="placerholder" width="80%">
 </p>
 
 [![Crates.io Version](https://img.shields.io/crates/v/rdx-hyperclock.svg)](https://crates.io/crates/rdx-stderr)
@@ -12,18 +12,7 @@
 
 A high-performance, event-driven, phased time engine for Rust, designed for simulations, game development, and complex, time-sensitive applications.
 
-```bash
- ___  ___      ___    ___ ________  _______   ________     
-|\  \|\  \    |\  \  /  /|\   __  \|\  ___ \ |\   __  \    
-\ \  \\\  \   \ \  \/  / | \  \|\  \ \   __/|\ \  \|\  \   
- \ \   __  \   \ \    / / \ \   ____\ \  \_|/_\ \   _  _\  
-  \ \  \ \  \   \/  /  /   \ \  \___|\ \  \_|\ \  \\  \| 
-   \ \__\ \__\__/  / /      \ \__\    \ \_______\ \__\\ _\ 
-    \|__|\|__|\___/ /        \|__|     \|_______|\|__|\|__|
-             \|___|/                                       
-    
-  
-```
+
 
 ## What is Hyperclock?
 
