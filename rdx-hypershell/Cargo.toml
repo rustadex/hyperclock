@@ -1,5 +1,5 @@
 [package]
-name = "hypershell"
+name = "rdx-hypershell"
 version = "0.1.1"
 edition = "2021"
 authors = ["qodeninja <1043235+qodeninja@users.noreply.github.com>"]
@@ -7,12 +7,12 @@ description = "An interactive shell for the Hyperclock phase engine."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rustadex/hyperclock"
 readme = "README.md"
-keywords = ["hyperclock", "shell", "repl", "time", "phase-engine"]
+keywords = ["hyperclock", "shell", "repl", "rdx", "phase-engine"]
 categories = ["command-line-utilities"]
 publish = false
 
 [dependencies]
-hyperclock = { path = "../hyperclock" }
+hyperclock = { package = "rdx-hyperclock", path = "../rdx-hyperclock" }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }

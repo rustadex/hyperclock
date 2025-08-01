@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "hyperclock",
-    "hypershell",
+    "rdx-hyperclock",
+    "rdx-hypershell",
 ]
 
 [workspace.dependencies]

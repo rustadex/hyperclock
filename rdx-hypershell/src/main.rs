@@ -13,7 +13,7 @@ async fn main() -> Result<()> {
         .init();
 
     // 2. Create a default configuration for the engine.
-    // In a real app, you would load this from a `hypershell.toml` file.
+    // In a real app, load this from a `hypershell.toml` file.
     let config = HyperclockConfig {
         resolution: ClockResolution::Medium,
         phases: vec![PhaseConfig {
